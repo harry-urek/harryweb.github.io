@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import LazyImage from '../lazy-image';
-import { AiOutlineContainer } from 'react-icons/ai';
-import { getDevPost, getMediumPost } from '@arifszn/blog-js';
-import { formatDistance } from 'date-fns';
-import { SanitizedBlog } from '../../interfaces/sanitized-config';
-import { ga, skeleton } from '../../utils';
-import { Article } from '../../interfaces/article';
+import { useEffect, useState } from "react";
+import LazyImage from "../lazy-image";
+import { AiOutlineContainer } from "react-icons/ai";
+import { getDevPost, getMediumPost } from "@arifszn/blog-js";
+import { formatDistance } from "date-fns";
+import { SanitizedBlog } from "../../interfaces/sanitized-config";
+import { ga, skeleton } from "../../utils";
+import { Article } from "../../interfaces/article";
 
 const BlogCard = ({
   loading,
@@ -19,19 +19,47 @@ const BlogCard = ({
   const [articles, setArticles] = useState<Article[]>([]);
 
   useEffect(() => {
-    if (blog.source === 'medium') {
-      getMediumPost({
-        user: blog.username,
-      }).then((res) => {
-        setArticles(res);
+    const fetchHashnodePosts = async (username: string) => {
+      const response = await fetch("https://api.hashnode.com", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: HASHNODE_QUERY,
+          variables: { username },
+        }),
       });
-    } else if (blog.source === 'dev') {
-      getDevPost({
-        user: blog.username,
-      }).then((res) => {
-        setArticles(res);
-      });
-    }
+      const data = await response.json();
+
+      // Transform data to match Article interface
+      const posts = data.data.user.publication.posts.map((post: any) => ({
+        title: post.title,
+        description: post.brief,
+        link: `https://${username}.hashnode.dev/${post.slug}`,
+        thumbnail: post.coverImage,
+        publishedAt: new Date(post.dateAdded),
+        categories: post.tags.map((tag: any) => tag.name),
+      }));
+
+      setArticles(posts);
+    };
+
+    const fetchArticles = async () => {
+      try {
+        if (blog.source === "medium") {
+          const res = await getMediumPost({ user: blog.username });
+          setArticles(res);
+        } else if (blog.source === "dev") {
+          const res = await getDevPost({ user: blog.username });
+          setArticles(res);
+        } else if (blog.source === "hashnode") {
+          await fetchHashnodePosts(blog.username);
+        }
+      } catch (error) {
+        console.error("Error fetching articles:", error);
+      }
+    };
+
+    fetchArticles();
   }, [blog.source, blog.username]);
 
   const renderSkeleton = () => {
@@ -44,9 +72,9 @@ const BlogCard = ({
               <div className="avatar mb-5 md:mb-0">
                 <div className="w-24 h-24 mask mask-squircle">
                   {skeleton({
-                    widthCls: 'w-full',
-                    heightCls: 'h-full',
-                    shape: '',
+                    widthCls: "w-full",
+                    heightCls: "h-full",
+                    shape: "",
                   })}
                 </div>
               </div>
@@ -55,28 +83,28 @@ const BlogCard = ({
                   <div className="w-full">
                     <h2>
                       {skeleton({
-                        widthCls: 'w-full',
-                        heightCls: 'h-8',
-                        className: 'mb-2 mx-auto md:mx-0',
+                        widthCls: "w-full",
+                        heightCls: "h-8",
+                        className: "mb-2 mx-auto md:mx-0",
                       })}
                     </h2>
                     {skeleton({
-                      widthCls: 'w-24',
-                      heightCls: 'h-3',
-                      className: 'mx-auto md:mx-0',
+                      widthCls: "w-24",
+                      heightCls: "h-3",
+                      className: "mx-auto md:mx-0",
                     })}
                     <div className="mt-3">
                       {skeleton({
-                        widthCls: 'w-full',
-                        heightCls: 'h-4',
-                        className: 'mx-auto md:mx-0',
+                        widthCls: "w-full",
+                        heightCls: "h-4",
+                        className: "mx-auto md:mx-0",
                       })}
                     </div>
                     <div className="mt-4 flex items-center flex-wrap justify-center md:justify-start">
                       {skeleton({
-                        widthCls: 'w-32',
-                        heightCls: 'h-4',
-                        className: 'md:mr-2 mx-auto md:mx-0',
+                        widthCls: "w-32",
+                        heightCls: "h-4",
+                        className: "md:mr-2 mx-auto md:mx-0",
                       })}
                     </div>
                   </div>
@@ -84,7 +112,7 @@ const BlogCard = ({
               </div>
             </div>
           </div>
-        </div>,
+        </div>
       );
     }
 
@@ -103,7 +131,7 @@ const BlogCard = ({
 
             try {
               if (googleAnalyticsId) {
-                ga.event('Click Blog Post', {
+                ga.event("Click Blog Post", {
                   post: article.title,
                 });
               }
@@ -111,7 +139,7 @@ const BlogCard = ({
               console.error(error);
             }
 
-            window?.open(article.link, '_blank');
+            window?.open(article.link, "_blank");
           }}
         >
           <div className="p-8 h-full w-full">
@@ -120,11 +148,11 @@ const BlogCard = ({
                 <div className="w-24 h-24 mask mask-squircle">
                   <LazyImage
                     src={article.thumbnail}
-                    alt={'thumbnail'}
+                    alt={"thumbnail"}
                     placeholder={skeleton({
-                      widthCls: 'w-full',
-                      heightCls: 'h-full',
-                      shape: '',
+                      widthCls: "w-full",
+                      heightCls: "h-full",
+                      shape: "",
                     })}
                   />
                 </div>
@@ -177,15 +205,15 @@ const BlogCard = ({
           <div
             className={`card compact bg-base-100 ${
               loading || (articles && articles.length)
-                ? 'shadow bg-opacity-40'
-                : 'shadow-lg'
+                ? "shadow bg-opacity-40"
+                : "shadow-lg"
             }`}
           >
             <div className="card-body">
               <div className="mx-3 mb-2">
                 <h5 className="card-title">
                   {loading ? (
-                    skeleton({ widthCls: 'w-28', heightCls: 'h-8' })
+                    skeleton({ widthCls: "w-28", heightCls: "h-8" })
                   ) : (
                     <span className="text-base-content opacity-70">
                       My Articles
